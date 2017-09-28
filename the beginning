@@ -1,57 +1,132 @@
-import pygame, sys
+import pygame, sys, random
 from pygame.locals import *
 
-
-
+#Defines Colours
 BLACK = (0, 0, 0 )
 BROWN = (153, 76, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
+WHITE = (255, 255, 255)
 
 DIRT = 0
 GRASS = 1
 WATER = 2
-COAL = 3
+STONE = 3
+DIAMOND = 4
 
-#colours = {
-    #DIRT : BROWN,
-   # GRASS : GREEN,
-   # WATER : BLUE,
-  #  COAL : BLACK
- #   }
+#Size Parameters
+TILESIZE = 55
+MAPWIDTH = 13
+MAPHEIGHT = 13
 
+resources = [DIRT,GRASS,WATER,STONE,DIAMOND]
+
+#Inventory Dictionary
+inventory = {
+    DIRT    : 0,
+    GRASS   : 0,
+    WATER   : 0,
+    STONE   : 0,
+    DIAMOND : 0
+    }
+
+#Loads Textures in
 textures = {
     DIRT : pygame.image.load('dirt.jpg'),
-    GRASS : pygame.image.load('grass.jpg'),
+    GRASS : pygame.image.load('grass3.jpg'),
     WATER : pygame.image.load('water.jpg'),
-    COAL : pygame.image.load('coal.jpg')
+    STONE : pygame.image.load('stone2.jpg'),
+    DIAMOND: pygame.image.load('diamond.png')
 }
                          
-tilemap = [
-    [GRASS, COAL, DIRT],
-    [WATER, WATER, GRASS],
-    [COAL, GRASS, WATER],
-    [DIRT, GRASS, COAL],
-    [GRASS, WATER, DIRT]
-    ]
+#Creates and defines the map the player interacts with
+tilemap = [[DIRT for win in range(MAPWIDTH)] for h in range(MAPHEIGHT)]
+def mapmake():
+    for rw in range(MAPHEIGHT):
+        for cl in range(MAPWIDTH):
+            randomNumber = random.randint(0,20)
+            if randomNumber <= 2:
+                tile = STONE
+            elif randomNumber == 3 or randomNumber == 4:
+                tile = WATER
+            elif randomNumber >= 5 and randomNumber <= 12:
+                tile = GRASS
+            elif randomNumber == 20:
+                tile = DIAMOND
+            else:
+                tile = DIRT
+            #Set the position in the tilemap to the random tile
+            tilemap[rw][cl] = tile    
 
-TILESIZE = 40
-MAPWIDTH = 3
-MAPHEIGHT = 5
 
+#Initialises the drawing board
 pygame.init()
-DISPLAYSURF = pygame.display.set_mode((MAPWIDTH*TILESIZE,MAPHEIGHT*TILESIZE))
+DISPLAYSURF = pygame.display.set_mode((MAPWIDTH*TILESIZE,MAPHEIGHT*TILESIZE + 100))
 
+#font for the inventory
+INVFONT = pygame.font.Font(None, 26)
+
+#Defines the player and their position
+PLAYER = pygame.image.load('player.png').convert_alpha()
+playerPos = [0,0]
+
+def playerstate():
+    print ('meme')
+#Makes the map 
+mapmake()
+
+
+pygame.mixer.init()
+pygame.mixer.music.load('milamix.mp3')
+pygame.mixer.music.play(-1)
+                
 
 while True:
+    #Collects keystroke info
     for event in pygame.event.get():
+        print(event)
+    
         if event.type == QUIT:
             pygame.quit()
             sys.exit()
-            
+screen_rect = (column*TILESIZE,row*TILESIZE)
+            #player movement system
+        elif event.type == KEYDOWN:
+            if(event.key == K_RIGHT):
+                playerPos[0] += 1
+                
+            elif(event.key == K_LEFT):
+                playerPos[0] -= 1
+            elif(event.key == K_DOWN):
+                playerPos[1] += 1
+            elif(event.key == K_UP):
+                playerPos[1] -= 1
+            elif(event.key == K_SPACE):
+                currentTile = tilemap[playerPos[1]][playerPos[0]]
+                #find the resource the player is on
+                inventory[currentTile] += 1
+                if currentTile == DIAMOND:
+                    tilemap[playerPos[1]][playerPos[0]] = STONE
+                else:
+                    tilemap[playerPos[1]][playerPos[0]]
+                currentTile = tilemap[playerPos[1]][playerPos[0]]
+    
     for row in range(MAPHEIGHT):
         for column in range(MAPWIDTH):
            DISPLAYSURF.blit(textures[tilemap[row][column]], (column*TILESIZE,row*TILESIZE))
-pygame.display.set_caption('Wump Hunt')
 
-pygame.display.update()
+    DISPLAYSURF.blit(pygame.transform.scale(PLAYER,(TILESIZE,TILESIZE)),(playerPos[0]*TILESIZE,playerPos[1]*TILESIZE))
+    #Gives the game a title
+    pygame.display.set_caption('Wump Hunt')
+
+    placePosition = 10
+    for item in resources:
+        #add the image
+        DISPLAYSURF.blit(textures[item],(placePosition,MAPHEIGHT*TILESIZE+0))
+        placePosition += 30
+        #add the text showing inventory amount
+        textObj = INVFONT.render(str(inventory[item]), True, WHITE, BLACK)
+        DISPLAYSURF.blit(textObj,(placePosition,MAPHEIGHT*TILESIZE+0))
+        placePosition += 50
+
+    pygame.display.update()
